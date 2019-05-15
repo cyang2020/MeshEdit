@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <style>
+            body {
+                padding: 100px;
+                width: 1000px;
+                margin: auto;
+                text-align: left;
+                font-weight: 300;
+                font-family: 'Open Sans', sans-serif;
+                color: #121212;
+            }
+        h1, h2, h3, h4 {
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+        </style>
+        <title>CS 184 Mesh Editor</title>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+    </head>
+    
+    
+    <body>
+        
+        <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2019</h1>
+        <h1 align="middle">Project 2: Mesh Editor</h1>
+        <h2 align="middle">Casper Yang</h2>
+        <h2 align="middle">3031833416</h2>
+        
+        <br><br>
+        
+        <div>
+            
+            <h2 align="middle">Overview</h2>
+            <p>In this project, I was able to understand the computational process of manipulating geometry. From using a set of points to create particular continuous cures, namely Bezier Curves to implementing these curves into surfaces with de Casteljau’s Algorithm. In addition, after creating and rendering the edible meshes, I also learned how to implement edge flipping and edge splitting functions which can smoothen the meshes by manipulating normal vectors. Through project I was also able to used these techniques to implemente upsampling geometry processing technique - Loop subdivision - as a way to increase resolution via interpolation.</p>
+            
+            <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+            
+            <h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+            <p>A Bézier curve is a parametric curve frequently used in computer graphics and related fields. The de Casteljau's algorithm is a recursive method to evaluate polynomials in Bézier curves.</p>
+            
+            <p>De Castelijau’s algorithm allows us to evaluate the Bezier curves recursively using a set of points. Given (k+1) points, we would first connect the points to create edges.</p>
+            
+            <p>I calculated the subdivision level control points recursively by taking the midpoints along edges, which divide the resultant edge into the proportion of t to 1 - t, where t is the parameter used to evaluate the Bezier curve, to form new control points until the final point, is evaluated. Then, we can get our Bezier curve using these successive linear interpolations.</p>
+            
+            <p>I store all intermediate control points in a 2D vector evaluatedLevels to implement the algorithm. When evaluateStep is called, I loop to interpolate the next level of control points through the latest control points until there is only one point then return.</p>
+            
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/1-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step0.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/1-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step1.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="images/1-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step2.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/1-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step3.</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="./images/1-5.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step4.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/1-6.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Four points step5.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="./images/1-7.png" align="middle" width="400px"/>
+                            <figcaption align="middle">modified.</figcaption>
+                        </td>
+                        <td>
+                            <img src="./images/1-8.png" align="middle" width="400px"/>
+                            <figcaption align="middle">with a different t.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            
+            
+            <h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+            <p> The first part shows how de Castelijau’s algorithm helps us create curves. Since surfaces are made up with multiple curves, the algorithm also works in a similar way of creating surfaces. To do this, I can simply add another dimension to create a two-dimensional surface. In the 4*4 control area, there is a Bezier curve for each 4*1 control point in u dimension and there are corresponding points on four curves define the four points for the moving curve in v dimension. We can take the Bezier curve to a higher dimension, containing multiple curves and tangents. For this project I implemented "separable 1D de Casteljau" method, where I do 1D de Casteljau in uv and then in v.</p>
+            
+            <p>I implemnted a helper function called evaluate1D to perform the algorithm of 1D de Casteljau and return the final computed point to implement the algorithm. Therefore, I loop through each row of control points to get an evaluated interpolated point for that row, and then another subdivision 1D de Casteljau on the interpolated points of all rows.</p>
+            
+            <p>I store all intermediate control points in a 2D vector evaluatedLevels to implement the algorithm. When evaluateStep is called, I loop to interpolate the next level of control points through the latest control points until there is only one point then return.</p>
+            <div align="middle">
+                <table style="width=100%">
+                   
+                        <td>
+                            <img src="./images/2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Teapot Bezier Surface Rendering.</figcaption>
+                        </td>
+                    
+                    <br>
+                </table>
+            </div>
+            
+            <h2 align="middle">Section II: Sampling</h2>
+            
+            <h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+            <p>In order to obtain a more realistic local shading than the default flat shading technique, the normal vector is required at each vertex. In this part, I need to find the triangle edges to calculate the cross product in order to get the average normal vector. First of all, I implemented the normal function which would iterate through all triangles that surround a certain vertex.</p>
+            <p>Then I calculate one edge with the function:
+            (halfedge points to twin points to vertex points to position) - (current halfedge points to vertex points to position)
+            The process runs through all of the halfedges until it returns to the original one. Finally, I add up all of the normals to get the final re-normalized vector, which allows us to make the meshes more continuous and smoother.</p>
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/3-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Teapot without smoothed normals.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/3-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Teapot with smoothed normals.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="./images/3-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Shaed without smoothed normals.</figcaption>
+                        </td>
+                        <td>
+                            <img src="./images/3-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Shaed with smoothed normals.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            <h3 align="middle">Part 4: Half-edge flip</h3>
+            <p>Half Edge flip is a local remeshing that "flips" an edge. Assume that we have a pair of triangles (a, b, c) and (c, b, d). We should now have triangles (a, d, c) and (a, b, d) after flipping the edge (b, c). In this part, in order to flip the orientations of the triangles, I need to reassign the pointers to the new edges and vertices. To do this, I first stored the half edges inside both triangles. Then follow the guide given tpo us on Piazza to assign to the modified values.
+                I started doing this part wothout consulting on Piazza, but it was a total mess, there was absolutely no way to keep track off all the pointers. I was also confused with which should be reassigned to which. Thank God for the diagram.</p>
+                <div align="middle">
+                    <table style="width=100%">
+                        <tr>
+                            <td>
+                                <img src="./images/4-1.png" align="middle" width="400px"/>
+                                <figcaption align="middle">Mesh before Half-Edge Flips.</figcaption>
+                            </td>
+                            <td>
+                                <img src="images/4-2.png" align="middle" width="400px"/>
+                                <figcaption align="middle">Mesh after Half-Edge Flips.</figcaption>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            <h3 align="middle">Part 5: Half-edge split</h3>
+            <p>Half - Edge split is a local edge remeshing operation. Assume that we have a pair of triangles (a, b, c) and (c, b, d). The edge (b, c) is divided by inserting a new vertex m at its midpoint and connecting it to the opposite vertices a and d. Learning from the troubles I went through in problem 4, I started by drawing the befor and after names of all the vs, es and hs. It took me forever...</p>
+            <p>The main key is to figure out all the names of all elements, 2 new trangles, 3 edges and a lot of halfeges, as well as what new elements are being generated. And reassign them.</p>
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/5-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Mesh before Half-Edge Splits.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/5-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Mesh before Half-Edge Splits</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="./images/5-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Mesh before Half-Edge Flip.</figcaption>
+                        </td>
+                        <td>
+                            <img src="./images/5-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Mesh before Half-Edge Flip and Split.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+            <p>Replace each triangle with four smaller triangles by connecting the edge midpoints. But if we first devide the faces into samller parts it would be a lot harder to update all the v positions. So I first iterated through all of the vertices and calculated their new positions and store them in Edge::newPosition. Then iterated through all the edges to get positions of the new vertices when splited and store them in Edge::newPosition, then split every edge in the mesh and also flip the edges that connect a newly created and an old v. The final step is to update all the vertex positions. Voila! The concept is not that hard to understand but in terms of coding there is so much that needs to pay more attention to. Here is a little dementration of unampling for Torus mesh. I spent a tons of time trying to figure out why my program went into a inifite loop, after reading the rubric carefully, I realized that I was splitting the newly split edges.</p>
+            
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/6-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 0.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/6-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 1.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="images/6-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 2.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/6-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 3.</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="./images/6-5.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 4.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/6-6.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 5.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="./images/6-7.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 6.</figcaption>
+                        </td>
+                        <td>
+                            <img src="./images/6-8.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus shaded.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            <p>
+            We can clearly see that after a few iterations the mesh did not only get "smoother" but also “smaller". The reason is that all vertex positions are interpolated by their surrounding vs.
+            
+            We can split some faces before the interation to keep some of ther sharpness within the mesh.
+            The rason is when vertices are super close to their neighbors, there is less position shifting happenning. We can clearly see that if we divide faces the mesh will maintain the cornery hexagon shape on the inner circle wile the outter cirle is still rounded.
+            </p>
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/7-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Splited Torus, subdivided: 0.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/7-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 1.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="images/7-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 2.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/7-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 3.</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="./images/7-5.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 4.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/7-6.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus, subdivided: 5.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="./images/7-7.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Torus splited and shaded.</figcaption>
+                        </td>
+                        
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            <p>If we load the cube.dae without any splitting, after a few iterations the mesh becomes assymmetric. That is because when a face is devided with a diagonal egde some corners of the cube have 2 neighbors while some other corners have only one. Resulting a different average of its neighbors.</p>
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/8-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 0.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/8-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 1.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="images/8-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 2.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/8-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 3.</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="./images/8-5.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube shaded.</figcaption>
+                        </td>
+                        
+                    </tr>
+                    <br>
+                </table>
+            </div>
+            <p>But if we split the cube's edges to make all the faces and vertices evenly divided, the shape retains its symmetry.</p>
+            
+            
+            <div align="middle">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="./images/9-1.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Splited cube, subdivided: 0.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/9-2.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 1.</figcaption>
+                        </td>
+                    </tr>
+                    <br>
+                    <tr>
+                        <td>
+                            <img src="images/9-3.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 2.</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/9-4.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 3.</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="./images/9-5.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube, subdivided: 4.</figcaption>
+                        </td>
+                        <td>
+                            <img src="./images/9-6.png" align="middle" width="400px"/>
+                            <figcaption align="middle">Cube Sahded.</figcaption>
+                        </td>
+                        
+                    </tr>
+                    <br>
+                </table>
+            </div>
+    </body>
+</html>
